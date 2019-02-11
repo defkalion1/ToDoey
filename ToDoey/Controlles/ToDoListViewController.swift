@@ -7,17 +7,21 @@
 //
 
 import UIKit
+import CoreData
 
 class ToDoListViewController: UITableViewController {
-
-    var itemArray = ["1","2"]
-    let defaults = UserDefaults.standard
+    
+    var itemArray = [Item]()
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
+   
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if let items = defaults.array(forKey: "TodoListArray") as? [String] {
-            itemArray = items
-        }
+        
+       // loadItems()
+    
     }
 
     
@@ -25,32 +29,44 @@ class ToDoListViewController: UITableViewController {
         return itemArray.count
     }
 
+    
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
         
-        cell.textLabel?.text = itemArray[indexPath.row]
+        let item = itemArray[indexPath.row]
+        
+        cell.textLabel?.text = item.title!
+        
+        cell.accessoryType = item.done == true ? .checkmark : .none
+        
         
         return cell
         
     }
+    
+    
     
     //MARK - TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         //print(itemArray[indexPath.row])
         
-        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        } else {
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-        }
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+        
+        saveItems()
+        //loadItems()
+        
         
         //This is for the selection not to be highlighted when we select it
         tableView.deselectRow(at: indexPath, animated: true)
         
+        tableView.reloadData()
+        
       
     }
+    
     
     //MARK - Add New Items
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -62,21 +78,50 @@ class ToDoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //What happens when the user presses the add button
             
-            self.itemArray.append(textFeild.text!)
-            self.defaults.setValue(self.itemArray, forKey: "TodoListArray")
-            self.tableView.reloadData()
+            let newItem = Item(context: self.context)
+            newItem.title = textFeild.text!
+            newItem.done = false
+            self.itemArray.append(newItem)
             
+            self.saveItems()
+            //self.loadItems()
             
             }
         alert.addTextField { (alertTextFeild) in
-            alertTextFeild.placeholder = "Create New Item"
             textFeild = alertTextFeild
-            
+            alertTextFeild.placeholder = "Create New Item"
         }
+        
+        
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
+        
+        
     
     }
+    
+    func saveItems() {
+        
+        do{
+        try context.save()
+            
+        } catch {
+           print("Error saving context \(error)")
+        }
+        tableView.reloadData()
+        
+    }
+    
+//    func loadItems() {
+//        if let data = try? Data(contentsOf: dataFilePath!) {
+//            let decoder = PropertyListDecoder()
+//            do{
+//            itemArray = try decoder.decode([Item].self, from: data)
+//            }catch {
+//                print(error)
+//            }
+//        }
+//    }
     
 }
 
